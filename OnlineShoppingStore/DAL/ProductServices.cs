@@ -10,105 +10,118 @@ using System.Data;
 namespace OnlineShoppingStore.DAL
 {
     public class ProductServices
-    {
-        public string connect = ConfigurationManager.ConnectionStrings["connection"].ConnectionString;
-        private SqlDataAdapter _adapter;
-        private DataSet _ds;
+    {   
+        
+        //connection
 
+        public SqlConnection con = new SqlConnection(ConfigurationManager.ConnectionStrings["mycon"].ConnectionString);
 
-        public IList<ProductModel> GetProductList()
+        //Get Data
+        public List<ProductModel> GetData()
         {
-            IList<ProductModel> getList = new List<ProductModel>();
-            _ds = new DataSet();
+            List<ProductModel> productlist = new List<ProductModel>();
+            SqlCommand cmd = new SqlCommand("SP_GetAllProduct", con);
+            SqlDataAdapter adp = new SqlDataAdapter(cmd);
 
-            using(SqlConnection conn=new SqlConnection("connect"))
+            DataTable dt = new DataTable();
+            adp.Fill(dt);
+
+
+            foreach(DataRow dr in dt.Rows)
             {
-                conn.Open();
-                SqlCommand cmd = new SqlCommand("ProductViewOrinsert", conn);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@mode", "GetProductList");
-
-                _adapter = new SqlDataAdapter(cmd);
-                _adapter.Fill(_ds);
-
-                if (_ds.Tables.Count > 0)
+                productlist.Add(new ProductModel
                 {
-                    for(int i=0;i<_ds.Tables[0].Rows.Count;i++)
-                    {
-                        ProductModel obj = new ProductModel();
-                        obj.Id = Convert.ToInt32(_ds.Tables[0].Rows[i]["Id"]);
-                        obj.ProductName = Convert.ToString(_ds.Tables[0].Rows[i]["ProductName"]);
-                        obj.ProductDiscription= Convert.ToString(_ds.Tables[0].Rows[i]["ProductDiscription"]);
-                        obj.ProductRating= Convert.ToString(_ds.Tables[0].Rows[i]["ProductRating"]);
-                        obj.ProductImage= Convert.ToString(_ds.Tables[0].Rows[i]["ProductImage"]);
-                        obj.ProductType= Convert.ToString(_ds.Tables[0].Rows[i]["ProductType"]);
-                        obj.Price = Convert.ToDecimal(_ds.Tables[0].Rows[i]["Price"]);
-
-
-                        getList.Add(obj);
-                    }
-
-                }
-
-
-
+                   Id=Convert.ToInt32(dr[0]),
+                   ProductName=Convert.ToString(dr[1]),
+                   ProductDiscription=Convert.ToString(dr[2]),
+                   ProductRating=Convert.ToString(dr[3]),
+                   ProductImage=Convert.ToString(dr[4]),
+                   ProductType=Convert.ToString(dr[5]),
+                   Price=Convert.ToDecimal(dr[6])
+                });
             }
-
-            return getList;
-        }
-
-        public void InsertProduct(ProductModel model)
-        {
-            using(SqlConnection conn=new SqlConnection(connect))
-            {
-                SqlCommand cmd = new SqlCommand("ProductViewOrinsert", conn);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@mode", "AddProduct");
-                cmd.Parameters.AddWithValue("@ProductName", model.ProductName);
-                cmd.Parameters.AddWithValue("@ProductDiscription", model.ProductDiscription);
-                cmd.Parameters.AddWithValue("@ProductRating", model.ProductRating);
-                cmd.Parameters.AddWithValue("@ProductImage", model.ProductImage);
-                cmd.Parameters.AddWithValue("@ProductType", model.ProductType);
-                cmd.Parameters.AddWithValue("@Price", model.Price);
-                cmd.ExecuteNonQuery();
-
-            }
+            return productlist;
         }
 
 
-        public ProductModel GetEditById(int Id)
+
+
+
+        //Add 
+        public bool Add(ProductModel obj)
         {
-            var model = new ProductModel();
+            SqlCommand cmd = new SqlCommand("SP_CreateNewProduct",con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@ProductName", obj.ProductName);
+            cmd.Parameters.AddWithValue("@ProductDiscription", obj.ProductDiscription);
+            cmd.Parameters.AddWithValue("@ProductRating", obj.ProductRating);
+            cmd.Parameters.AddWithValue("@ProductImage", obj.ProductImage);
+            cmd.Parameters.AddWithValue("@ProductType", obj.ProductType);
+            cmd.Parameters.AddWithValue("@Price", obj.Price);
 
-            using(SqlConnection conn=new SqlConnection(connect))
+            if (con.State == ConnectionState.Closed)
+                con.Open();
+
+            int i = cmd.ExecuteNonQuery();
+            con.Close();
+            if(i>=1)
             {
-                conn.Open();
-                SqlCommand cmd = new SqlCommand("ProductViewOrinsert", conn);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@mode", "GetProductById");
-                cmd.Parameters.AddWithValue("@ProdId", Id);
-                _adapter = new SqlDataAdapter(cmd);
-                _ds = new DataSet();
-                _adapter.Fill(_ds);
-
-                if(_ds.Tables.Count>0 && _ds.Tables[0].Rows.Count>0)
-                {
-                    model.Id = Convert.ToInt32(_ds.Tables[0].Rows[0]["Id"]);
-                    model.ProductName = Convert.ToString(_ds.Tables[0].Rows[0]["ProductName"]);
-                    model.ProductDiscription= Convert.ToString(_ds.Tables[0].Rows[0]["ProductDiscription"]);
-                    model.ProductRating= Convert.ToString(_ds.Tables[0].Rows[0]["ProductRating"]);
-                    model.ProductImage= Convert.ToString(_ds.Tables[0].Rows[0]["ProductImage"]);
-                    model.ProductType= Convert.ToString(_ds.Tables[0].Rows[0]["ProductType"]);
-                    model.Price= Convert.ToDecimal(_ds.Tables[0].Rows[0]["Price"]);
-                }
+                return true;
             }
+            else
+            {
+                return false;
+            }
+        }
 
+        //Update
+        public bool Update(ProductModel obj)
+        {
+            SqlCommand cmd = new SqlCommand("SP_UpdateProduct", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@ProductName", obj.ProductName);
+            cmd.Parameters.AddWithValue("@ProductDiscription", obj.ProductDiscription);
+            cmd.Parameters.AddWithValue("@ProductRating", obj.ProductRating);
+            cmd.Parameters.AddWithValue("@ProductImage", obj.ProductImage);
+            cmd.Parameters.AddWithValue("@ProductType", obj.ProductType);
+            cmd.Parameters.AddWithValue("@Price", obj.Price);
 
+            if (con.State == ConnectionState.Closed)
+                con.Open();
 
+            int i = cmd.ExecuteNonQuery();
+            con.Close();
+            if (i >= 1)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
 
+        //Delete
+        public bool Del(ProductModel obj)
+        {
+            SqlCommand cmd = new SqlCommand("SP_DeleteProduct", con);
+            cmd.CommandType = CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@id", obj.Id);
+            
 
+            if (con.State == ConnectionState.Closed)
+                con.Open();
 
-            return model;
+            int i = cmd.ExecuteNonQuery();
+            con.Close();
+            if (i >= 1)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
         }
     }
 }
